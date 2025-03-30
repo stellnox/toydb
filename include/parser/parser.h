@@ -17,6 +17,7 @@ struct SelectStmt;
 struct UpdateStmt;
 struct DeleteStmt;
 struct DropTableStmt;
+struct ShowTablesStmt;
 
 // Statement is a variant of all possible statement types
 using Statement = std::variant<
@@ -25,7 +26,8 @@ using Statement = std::variant<
     SelectStmt,
     UpdateStmt,
     DeleteStmt,
-    DropTableStmt
+    DropTableStmt,
+    ShowTablesStmt
 >;
 
 // Column definition for CREATE TABLE
@@ -81,6 +83,11 @@ struct DropTableStmt {
     std::string table_name;
 };
 
+// SHOW TABLES statement
+struct ShowTablesStmt {
+    // No additional fields needed
+};
+
 // Parser class
 class Parser {
 public:
@@ -100,6 +107,7 @@ private:
     std::optional<UpdateStmt> parse_update(std::vector<std::string>& tokens);
     std::optional<DeleteStmt> parse_delete(std::vector<std::string>& tokens);
     std::optional<DropTableStmt> parse_drop_table(std::vector<std::string>& tokens);
+    std::optional<ShowTablesStmt> parse_show_tables(std::vector<std::string>& tokens);
     
     // Tokenize the SQL statement
     std::vector<std::string> tokenize(const std::string& sql);

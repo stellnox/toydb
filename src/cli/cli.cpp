@@ -80,6 +80,8 @@ void CLI::execute_command(const std::string& command) {
                 handle_delete(stmt);
             } else if constexpr (std::is_same_v<T, parser::DropTableStmt>) {
                 handle_drop_table(stmt);
+            } else if constexpr (std::is_same_v<T, parser::ShowTablesStmt>) {
+                handle_show_tables(stmt);
             }
         }, *statement);
     } catch (const std::exception& e) {
@@ -287,6 +289,33 @@ void CLI::handle_drop_table(const parser::DropTableStmt& stmt) {
     }
 }
 
+void CLI::handle_show_tables(const parser::ShowTablesStmt& stmt) {
+    auto table_names = db_->list_tables();
+    
+    if (table_names.empty()) {
+        std::cout << "No tables found." << std::endl;
+        return;
+    }
+    
+    // Find the maximum table name length for formatting
+    size_t max_width = 0;
+    for (const auto& name : table_names) {
+        max_width = std::max(max_width, name.length());
+    }
+    max_width = std::max(max_width, std::string("TABLE_NAME").length());
+    
+    // Print header
+    std::cout << "| " << std::left << std::setw(max_width) << "TABLE_NAME" << " |" << std::endl;
+    std::cout << "+-" << std::string(max_width, '-') << "-+" << std::endl;
+    
+    // Print table names
+    for (const auto& name : table_names) {
+        std::cout << "| " << std::left << std::setw(max_width) << name << " |" << std::endl;
+    }
+    
+    std::cout << table_names.size() << " table(s) found." << std::endl;
+}
+
 void CLI::print_help() const {
     std::cout << "ToyDB Help:\n"
               << "----------\n"
@@ -304,6 +333,8 @@ void CLI::print_help() const {
               << "  - Delete rows matching conditions\n\n"
               << "DROP TABLE table_name;\n"
               << "  - Remove a table\n\n"
+              << "SHOW TABLES;\n"
+              << "  - List all tables in the database\n\n"
               << "Special commands (without semicolon):\n"
               << "  help - Display this help\n"
               << "  exit/quit - Exit ToyDB\n";

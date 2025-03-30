@@ -34,6 +34,7 @@ private:
     void handle_update(const parser::UpdateStmt& stmt);
     void handle_delete(const parser::DeleteStmt& stmt);
     void handle_drop_table(const parser::DropTableStmt& stmt);
+    void handle_show_tables(const parser::ShowTablesStmt& stmt);
     
     // Print help/usage information
     void print_help() const;

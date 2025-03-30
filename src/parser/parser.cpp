@@ -54,6 +54,10 @@ std::optional<Statement> Parser::parse(const std::string& sql) {
         if (tokens.size() > 1 && to_upper(tokens[1]) == "TABLE") {
             return parse_drop_table(tokens);
         }
+    } else if (cmd == "SHOW") {
+        if (tokens.size() > 1 && to_upper(tokens[1]) == "TABLES") {
+            return parse_show_tables(tokens);
+        }
     }
     
     error_ = "Unknown SQL command: " + cmd;
@@ -580,6 +584,25 @@ std::optional<DropTableStmt> Parser::parse_drop_table(std::vector<std::string>& 
     }
     
     return stmt;
+}
+
+// Parse SHOW TABLES statement
+std::optional<ShowTablesStmt> Parser::parse_show_tables(std::vector<std::string>& tokens) {
+    // Ensure we have enough tokens
+    if (tokens.size() < 2) {
+        error_ = "Invalid SHOW TABLES syntax";
+        return std::nullopt;
+    }
+    
+    // Skip "SHOW TABLES" part
+    tokens.erase(tokens.begin(), tokens.begin() + 2);
+    
+    // Check for semicolon
+    if (!tokens.empty() && tokens[0] == ";") {
+        tokens.erase(tokens.begin());
+    }
+    
+    return ShowTablesStmt{};
 }
 
 // Convert string type to ColumnType enum
