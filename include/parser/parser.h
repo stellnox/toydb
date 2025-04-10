@@ -18,6 +18,9 @@ struct UpdateStmt;
 struct DeleteStmt;
 struct DropTableStmt;
 struct ShowTablesStmt;
+struct BeginTransactionStmt;
+struct CommitTransactionStmt;
+struct AbortTransactionStmt;
 
 // Statement is a variant of all possible statement types
 using Statement = std::variant<
@@ -27,7 +30,10 @@ using Statement = std::variant<
     UpdateStmt,
     DeleteStmt,
     DropTableStmt,
-    ShowTablesStmt
+    ShowTablesStmt,
+    BeginTransactionStmt,
+    CommitTransactionStmt,
+    AbortTransactionStmt
 >;
 
 // Column definition for CREATE TABLE
@@ -88,6 +94,21 @@ struct ShowTablesStmt {
     // No additional fields needed
 };
 
+// BEGIN TRANSACTION statement
+struct BeginTransactionStmt {
+    // No additional fields needed
+};
+
+// COMMIT TRANSACTION statement
+struct CommitTransactionStmt {
+    uint64_t transaction_id;
+};
+
+// ABORT/ROLLBACK TRANSACTION statement
+struct AbortTransactionStmt {
+    uint64_t transaction_id;
+};
+
 // Parser class
 class Parser {
 public:
@@ -108,6 +129,9 @@ private:
     std::optional<DeleteStmt> parse_delete(std::vector<std::string>& tokens);
     std::optional<DropTableStmt> parse_drop_table(std::vector<std::string>& tokens);
     std::optional<ShowTablesStmt> parse_show_tables(std::vector<std::string>& tokens);
+    std::optional<BeginTransactionStmt> parse_begin_transaction(std::vector<std::string>& tokens);
+    std::optional<CommitTransactionStmt> parse_commit_transaction(std::vector<std::string>& tokens);
+    std::optional<AbortTransactionStmt> parse_abort_transaction(std::vector<std::string>& tokens);
     
     // Tokenize the SQL statement
     std::vector<std::string> tokenize(const std::string& sql);

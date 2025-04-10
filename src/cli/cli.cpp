@@ -82,6 +82,12 @@ void CLI::execute_command(const std::string& command) {
                 handle_drop_table(stmt);
             } else if constexpr (std::is_same_v<T, parser::ShowTablesStmt>) {
                 handle_show_tables(stmt);
+            } else if constexpr (std::is_same_v<T, parser::BeginTransactionStmt>) {
+                handle_begin_transaction(stmt);
+            } else if constexpr (std::is_same_v<T, parser::CommitTransactionStmt>) {
+                handle_commit_transaction(stmt);
+            } else if constexpr (std::is_same_v<T, parser::AbortTransactionStmt>) {
+                handle_abort_transaction(stmt);
             }
         }, *statement);
     } catch (const std::exception& e) {
@@ -316,6 +322,29 @@ void CLI::handle_show_tables(const parser::ShowTablesStmt& stmt) {
     std::cout << table_names.size() << " table(s) found." << std::endl;
 }
 
+void CLI::handle_begin_transaction(const parser::BeginTransactionStmt& stmt) {
+    uint64_t transaction_id = db_->begin_transaction();
+    std::cout << "Transaction started with ID: " << transaction_id << std::endl;
+}
+
+void CLI::handle_commit_transaction(const parser::CommitTransactionStmt& stmt) {
+    try {
+        db_->commit_transaction(stmt.transaction_id);
+        std::cout << "Transaction " << stmt.transaction_id << " committed successfully." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error committing transaction: " << e.what() << std::endl;
+    }
+}
+
+void CLI::handle_abort_transaction(const parser::AbortTransactionStmt& stmt) {
+    try {
+        db_->abort_transaction(stmt.transaction_id);
+        std::cout << "Transaction " << stmt.transaction_id << " aborted successfully." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error aborting transaction: " << e.what() << std::endl;
+    }
+}
+
 void CLI::print_help() const {
     std::cout << "ToyDB Help:\n"
               << "----------\n"
@@ -335,6 +364,13 @@ void CLI::print_help() const {
               << "  - Remove a table\n\n"
               << "SHOW TABLES;\n"
               << "  - List all tables in the database\n\n"
+              << "Transaction commands:\n"
+              << "BEGIN TRANSACTION;\n"
+              << "  - Start a new transaction and get a transaction ID\n\n"
+              << "COMMIT TRANSACTION transaction_id;\n"
+              << "  - Commit a transaction by ID\n\n"
+              << "ABORT TRANSACTION transaction_id; (or ROLLBACK TRANSACTION transaction_id;)\n"
+              << "  - Abort/rollback a transaction by ID\n\n"
               << "Special commands (without semicolon):\n"
               << "  help - Display this help\n"
               << "  exit/quit - Exit ToyDB\n";

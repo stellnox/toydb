@@ -35,6 +35,9 @@ private:
     void handle_delete(const parser::DeleteStmt& stmt);
     void handle_drop_table(const parser::DropTableStmt& stmt);
     void handle_show_tables(const parser::ShowTablesStmt& stmt);
+    void handle_begin_transaction(const parser::BeginTransactionStmt& stmt);
+    void handle_commit_transaction(const parser::CommitTransactionStmt& stmt);
+    void handle_abort_transaction(const parser::AbortTransactionStmt& stmt);
     
     // Print help/usage information
     void print_help() const;

@@ -8,6 +8,7 @@ A simple database implementation in C++ with CLI support.
 - CRUD operations (Create, Read, Update, Delete)
 - Command-line interface for database operations
 - Simple SQL-like query language
+- Transaction support with ACID properties
 
 ## Building
 
@@ -30,6 +31,14 @@ INSERT INTO users VALUES (1, "John Doe", 30);
 SELECT * FROM users;
 UPDATE users SET age = 31 WHERE id = 1;
 DELETE FROM users WHERE id = 1;
+
+# Transaction examples
+BEGIN TRANSACTION;         # Returns a transaction ID
+INSERT INTO users VALUES (2, "Jane Doe", 25, transaction_id);
+UPDATE users SET age = 26 WHERE id = 2, transaction_id);
+COMMIT TRANSACTION transaction_id;    # Commit changes
+# or
+ABORT TRANSACTION transaction_id;    # Abort/rollback changes
 ```
 
 ## Project Structure
@@ -39,4 +48,5 @@ DELETE FROM users WHERE id = 1;
 - `src/storage/` - Storage engine (B+ Tree implementation)
 - `src/parser/` - SQL parser
 - `src/cli/` - Command-line interface
-- `src/db/` - Database engine core functionality 
+- `src/db/` - Database engine core functionality
+- `src/database/` - Database core components including transaction management 

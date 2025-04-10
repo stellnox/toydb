@@ -41,6 +41,8 @@ std::optional<Statement> Parser::parse(const std::string& sql) {
     if (cmd == "CREATE") {
         if (tokens.size() > 1 && to_upper(tokens[1]) == "TABLE") {
             return parse_create_table(tokens);
+        } else if (tokens.size() > 1 && to_upper(tokens[1]) == "INDEX") {
+            return parse_create_index();
         }
     } else if (cmd == "INSERT") {
         return parse_insert(tokens);
@@ -53,10 +55,28 @@ std::optional<Statement> Parser::parse(const std::string& sql) {
     } else if (cmd == "DROP") {
         if (tokens.size() > 1 && to_upper(tokens[1]) == "TABLE") {
             return parse_drop_table(tokens);
+        } else if (tokens.size() > 1 && to_upper(tokens[1]) == "INDEX") {
+            return parse_drop_index();
         }
     } else if (cmd == "SHOW") {
         if (tokens.size() > 1 && to_upper(tokens[1]) == "TABLES") {
             return parse_show_tables(tokens);
+        }
+    } else if (cmd == "ALTER") {
+        if (tokens.size() > 1 && to_upper(tokens[1]) == "TABLE") {
+            return parse_alter_table();
+        }
+    } else if (cmd == "BEGIN") {
+        if (tokens.size() > 1 && to_upper(tokens[1]) == "TRANSACTION") {
+            return parse_begin_transaction(tokens);
+        }
+    } else if (cmd == "COMMIT") {
+        if (tokens.size() > 1 && to_upper(tokens[1]) == "TRANSACTION") {
+            return parse_commit_transaction(tokens);
+        }
+    } else if (cmd == "ROLLBACK" || cmd == "ABORT") {
+        if (tokens.size() > 1 && to_upper(tokens[1]) == "TRANSACTION") {
+            return parse_abort_transaction(tokens);
         }
     }
     
@@ -686,6 +706,135 @@ db::Condition convert_condition(const Condition& cond, const std::vector<db::Col
     
     db_cond.value = parse_value(cond.value, col_type);
     return db_cond;
+}
+
+std::unique_ptr<Statement> Parser::parse_alter_table() {
+    auto stmt = std::make_unique<AlterTableStmt>();
+    
+    // Parse table name
+    stmt->table_name = parse_identifier();
+    
+    // Parse ALTER command
+    std::string command = parse_keyword();
+    if (command == "ADD") {
+        stmt->command = AlterTableStmt::Command::ADD;
+        if (parse_keyword() == "COLUMN") {
+            stmt->column_def = parse_column_def();
+        } else {
+            throw std::runtime_error("Expected COLUMN keyword after ADD");
+        }
+    } else if (command == "DROP") {
+        stmt->command = AlterTableStmt::Command::DROP;
+        if (parse_keyword() == "COLUMN") {
+            stmt->column_name = parse_identifier();
+        } else {
+            throw std::runtime_error("Expected COLUMN keyword after DROP");
+        }
+    } else if (command == "RENAME") {
+        stmt->command = AlterTableStmt::Command::RENAME;
+        if (parse_keyword() == "TO") {
+            stmt->new_name = parse_identifier();
+        } else {
+            throw std::runtime_error("Expected TO keyword after RENAME");
+        }
+    } else {
+        throw std::runtime_error("Invalid ALTER TABLE command");
+    }
+    
+    return stmt;
+}
+
+std::unique_ptr<Statement> Parser::parse_create_index() {
+    auto stmt = std::make_unique<CreateIndexStmt>();
+    
+    // Parse index name
+    stmt->index_name = parse_identifier();
+    
+    // Parse ON keyword
+    if (parse_keyword() != "ON") {
+        throw std::runtime_error("Expected ON keyword after index name");
+    }
+    
+    // Parse table name
+    stmt->table_name = parse_identifier();
+    
+    // Parse column list
+    if (parse_keyword() != "(") {
+        throw std::runtime_error("Expected ( after table name");
+    }
+    
+    do {
+        stmt->columns.push_back(parse_identifier());
+    } while (parse_keyword() == ",");
+    
+    return stmt;
+}
+
+std::unique_ptr<Statement> Parser::parse_drop_index() {
+    auto stmt = std::make_unique<DropIndexStmt>();
+    
+    // Parse index name
+    stmt->index_name = parse_identifier();
+    
+    // Parse ON keyword
+    if (parse_keyword() != "ON") {
+        throw std::runtime_error("Expected ON keyword after index name");
+    }
+    
+    // Parse table name
+    stmt->table_name = parse_identifier();
+    
+    return stmt;
+}
+
+// Parse BEGIN TRANSACTION statement
+std::optional<BeginTransactionStmt> Parser::parse_begin_transaction(std::vector<std::string>& tokens) {
+    // Verify syntax: BEGIN TRANSACTION
+    if (tokens.size() < 2 || to_upper(tokens[0]) != "BEGIN" || to_upper(tokens[1]) != "TRANSACTION") {
+        error_ = "Invalid BEGIN TRANSACTION syntax";
+        return std::nullopt;
+    }
+    
+    // Return a simple begin transaction statement
+    return BeginTransactionStmt{};
+}
+
+// Parse COMMIT TRANSACTION statement
+std::optional<CommitTransactionStmt> Parser::parse_commit_transaction(std::vector<std::string>& tokens) {
+    // Verify syntax: COMMIT TRANSACTION <transaction_id>
+    if (tokens.size() < 3 || to_upper(tokens[0]) != "COMMIT" || to_upper(tokens[1]) != "TRANSACTION") {
+        error_ = "Invalid COMMIT TRANSACTION syntax";
+        return std::nullopt;
+    }
+    
+    // Parse transaction ID
+    try {
+        uint64_t transaction_id = std::stoull(tokens[2]);
+        return CommitTransactionStmt{transaction_id};
+    } catch (const std::exception& e) {
+        error_ = "Invalid transaction ID: " + tokens[2];
+        return std::nullopt;
+    }
+}
+
+// Parse ABORT/ROLLBACK TRANSACTION statement
+std::optional<AbortTransactionStmt> Parser::parse_abort_transaction(std::vector<std::string>& tokens) {
+    // Verify syntax: ABORT/ROLLBACK TRANSACTION <transaction_id>
+    if (tokens.size() < 3 || 
+        (to_upper(tokens[0]) != "ABORT" && to_upper(tokens[0]) != "ROLLBACK") || 
+        to_upper(tokens[1]) != "TRANSACTION") {
+        error_ = "Invalid ABORT/ROLLBACK TRANSACTION syntax";
+        return std::nullopt;
+    }
+    
+    // Parse transaction ID
+    try {
+        uint64_t transaction_id = std::stoull(tokens[2]);
+        return AbortTransactionStmt{transaction_id};
+    } catch (const std::exception& e) {
+        error_ = "Invalid transaction ID: " + tokens[2];
+        return std::nullopt;
+    }
 }
 
 } // namespace parser
